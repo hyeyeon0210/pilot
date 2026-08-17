@@ -83,7 +83,23 @@
   </section>
 
   <section id="chat-screen" class="pilot-chat-wrap" style="display: none;">
-    <div id="webchat"></div>
+    <aside class="pilot-progress-panel">
+      <div class="pilot-progress-summary" id="progress-summary"></div>
+      <h2 class="pilot-progress-title">진행 상황</h2>
+      <ol class="pilot-progress-steps" id="progress-steps">
+        <li data-stage="1"><span class="step-dot">1</span><span class="step-label">문제 발견</span></li>
+        <li data-stage="2"><span class="step-dot">2</span><span class="step-label">문제 정의</span></li>
+        <li data-stage="3"><span class="step-dot">3</span><span class="step-label">문제 분해</span></li>
+        <li data-stage="4"><span class="step-dot">4</span><span class="step-label">해결 전략 수립</span></li>
+        <li data-stage="5"><span class="step-dot">5</span><span class="step-label">제안서·산출물 정리</span></li>
+      </ol>
+      <p class="pilot-progress-hint">AI와 대화하는 동안 자동으로 업데이트돼요.</p>
+    </aside>
+    <div class="pilot-chat-column">
+      <div class="pilot-chat-frame">
+        <div id="webchat"></div>
+      </div>
+    </div>
   </section>
 
   <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
@@ -94,6 +110,8 @@
     const webchatEl = document.getElementById('webchat');
     const form = document.getElementById('setup-form');
     const classModeFields = document.getElementById('class-mode-fields');
+    const summaryEl = document.getElementById('progress-summary');
+    const stepEls = Array.from(document.querySelectorAll('#progress-steps li'));
 
     document.getElementsByName('mode').forEach((radio) => {
       radio.addEventListener('change', () => {
@@ -101,6 +119,28 @@
         classModeFields.style.display = isClassMode ? 'block' : 'none';
       });
     });
+
+    function renderSummary(initialValue) {
+      summaryEl.textContent =
+        initialValue.mode === 'class'
+          ? `수업모드 · ${[initialValue.subject, initialValue.projectType].filter(Boolean).join(' / ')}`
+          : '탐구모드 · 자유 주제';
+    }
+
+    function setStage(stage) {
+      stepEls.forEach((li) => {
+        const n = Number(li.dataset.stage);
+        const dot = li.querySelector('.step-dot');
+        li.classList.remove('is-current', 'is-done');
+        if (n < stage) {
+          li.classList.add('is-done');
+          dot.textContent = '✓';
+        } else {
+          if (n === stage) li.classList.add('is-current');
+          dot.textContent = String(n);
+        }
+      });
+    }
 
     form.addEventListener('submit', (event) => {
       event.preventDefault();
@@ -120,9 +160,12 @@
         learningGoals: isClassMode ? data.get('learningGoals') || '' : '',
       };
 
+      renderSummary(initialValue);
+      setStage(1);
+
       setupScreen.style.display = 'none';
       chatScreen.style.display = 'flex';
-      startPilotChat({ agent: 'student', container: webchatEl, initialValue });
+      startPilotChat({ agent: 'student', container: webchatEl, initialValue, onStageChange: setStage });
     });
   </script>
 </body>

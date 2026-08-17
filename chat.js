@@ -13,8 +13,12 @@
 //    (Learning Coach Instruction 3번 참고).
 // 4) 이 메시지는 학생에게는 보이면 안 되므로, activityMiddleware로 화면에서만
 //    숨긴다 — 봇에게는 정상적으로 전달되고, 학생 눈에만 안 보인다.
+// 5) 에이전트가 매 응답 끝에 붙이는 "[PILOT_STAGE:n]" 태그(n=1~5, 공통 백본 단계
+//    번호)를 들어오는 활동에서 읽어 onStageChange로 넘기고, 학생에게 보이는
+//    텍스트에서는 그 태그를 잘라낸다 — 진행 상황 사이드바가 이 콜백으로 갱신된다.
 
 const PILOT_CONTEXT_MARKER = '[PILOT_WEBAPP_CONTEXT]';
+const PILOT_STAGE_PATTERN = /\s*\[PILOT_STAGE:(\d)\]\s*$/;
 
 // 우리가 보낸 컨텍스트 메시지를 화면(transcript)에서만 제거한다.
 function hideContextMessageMiddleware() {
@@ -33,7 +37,7 @@ function hideContextMessageMiddleware() {
   };
 }
 
-async function startPilotChat({ agent, container, initialValue = {}, locale = 'ko-KR' }) {
+async function startPilotChat({ agent, container, initialValue = {}, locale = 'ko-KR', onStageChange }) {
   container.innerHTML = '<div class="pilot-loading">대화를 준비하고 있어요…</div>';
 
   let token;
@@ -60,6 +64,28 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
         },
       });
     }
+
+    if (action.type === 'DIRECT_LINE/INCOMING_ACTIVITY' && typeof onStageChange === 'function') {
+      const { activity } = action.payload;
+      if (activity && activity.type === 'message' && typeof activity.text === 'string') {
+        const match = activity.text.match(PILOT_STAGE_PATTERN);
+        if (match) {
+          onStageChange(Number(match[1]));
+          // 학생에게는 태그 없이 깔끔한 텍스트만 보이도록, 여기서 잘라낸 뒤 전달한다.
+          action = {
+            ...action,
+            payload: {
+              ...action.payload,
+              activity: {
+                ...activity,
+                text: activity.text.slice(0, match.index).trim(),
+              },
+            },
+          };
+        }
+      }
+    }
+
     return next(action);
   });
 

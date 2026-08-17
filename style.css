@@ -90,6 +90,26 @@ body {
   }
 }
 
+.pilot-choice-grid--single {
+  grid-template-columns: 1fr;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.pilot-teacher-link {
+  display: inline-block;
+  margin-top: 48px;
+  font-size: 12px;
+  color: var(--pilot-text-muted);
+  text-decoration: none;
+  opacity: 0.6;
+}
+
+.pilot-teacher-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
 .pilot-choice-card {
   display: block;
   background: var(--pilot-surface);
@@ -262,13 +282,145 @@ body {
 /* 채팅 화면 */
 .pilot-chat-wrap {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: calc(100vh - 61px);
 }
 
 #webchat {
   flex: 1;
   min-height: 0;
+}
+
+/* 진행 상황 사이드바 (학생용) */
+.pilot-progress-panel {
+  width: 280px;
+  flex-shrink: 0;
+  padding: 24px 20px;
+  border-right: 1px solid var(--pilot-border);
+  background: var(--pilot-surface);
+  overflow-y: auto;
+}
+
+.pilot-progress-summary {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pilot-primary-dark);
+  background: var(--pilot-primary-soft);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-bottom: 22px;
+  line-height: 1.5;
+}
+
+.pilot-progress-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--pilot-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin: 0 0 14px;
+}
+
+.pilot-progress-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pilot-progress-steps li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--pilot-text-muted);
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.step-dot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid var(--pilot-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--pilot-text-muted);
+  background: var(--pilot-surface);
+  flex-shrink: 0;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.pilot-progress-steps li.is-done {
+  color: var(--pilot-text);
+}
+
+.pilot-progress-steps li.is-done .step-dot {
+  background: var(--pilot-primary);
+  border-color: var(--pilot-primary);
+  color: #fff;
+}
+
+.pilot-progress-steps li.is-current {
+  background: var(--pilot-primary-soft);
+  color: var(--pilot-primary-dark);
+  font-weight: 700;
+}
+
+.pilot-progress-steps li.is-current .step-dot {
+  border-color: var(--pilot-primary);
+  color: var(--pilot-primary);
+}
+
+.pilot-progress-hint {
+  margin-top: 20px;
+  font-size: 11px;
+  color: var(--pilot-text-muted);
+  line-height: 1.5;
+}
+
+/* 채팅을 화면 전체 폭이 아니라 가운데 카드 형태로 좁혀 보여준다 */
+.pilot-chat-column {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  background: var(--pilot-bg);
+  padding: 20px;
+  min-width: 0;
+}
+
+.pilot-chat-frame {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  background: var(--pilot-surface);
+  border: 1px solid var(--pilot-border);
+  border-radius: var(--pilot-radius);
+  box-shadow: var(--pilot-shadow);
+  overflow: hidden;
+}
+
+@media (max-width: 760px) {
+  .pilot-chat-wrap {
+    flex-direction: column;
+  }
+
+  .pilot-progress-panel {
+    width: 100%;
+    max-height: 160px;
+    border-right: none;
+    border-bottom: 1px solid var(--pilot-border);
+  }
+
+  .pilot-chat-column {
+    padding: 12px;
+  }
 }
 
 .pilot-loading {
