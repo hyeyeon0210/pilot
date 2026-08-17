@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pilot Learning Coach</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="pilot-header">
+    <div class="pilot-logo">P<span>ilot</span> Learning Coach</div>
+  </header>
+
+  <section id="setup-screen" class="pilot-setup">
+    <h1>시작하기 전에 알려주세요</h1>
+    <p class="lead">한 번만 입력하면 대화 내내 기억해요. 비워둬도 괜찮은 항목은 비워두세요.</p>
+
+    <form id="setup-form">
+      <div class="pilot-field">
+        <label>오늘은 어떤 방식으로 진행할까요?</label>
+        <div class="pilot-radio-group">
+          <label><input type="radio" name="mode" value="class" checked /> 수업모드 (교과 프로젝트)</label>
+          <label><input type="radio" name="mode" value="inquiry" /> 탐구모드 (자유 주제)</label>
+        </div>
+      </div>
+
+      <div class="pilot-field">
+        <label>학교급</label>
+        <select name="schoolLevel">
+          <option value="초">초등학교</option>
+          <option value="중" selected>중학교</option>
+          <option value="고">고등학교</option>
+        </select>
+      </div>
+
+      <div class="pilot-field">
+        <label>학년 <span class="hint">(선택)</span></label>
+        <input type="text" name="grade" placeholder="예: 2" />
+      </div>
+
+      <div class="pilot-field">
+        <label>반 <span class="hint">(선택)</span></label>
+        <input type="text" name="classId" placeholder="예: 3반" />
+      </div>
+
+      <div class="pilot-field">
+        <label>학번 또는 별명 <span class="hint">(선택)</span></label>
+        <input type="text" name="studentId" placeholder="예: 20305 또는 별명" />
+      </div>
+
+      <div id="class-mode-fields">
+        <div class="pilot-field">
+          <label>교과</label>
+          <select name="subject">
+            <option value="인공지능기초">인공지능기초</option>
+            <option value="정보">정보</option>
+            <option value="사회">사회 (초등 5~6학년군)</option>
+          </select>
+        </div>
+
+        <div class="pilot-field">
+          <label>프로젝트 유형</label>
+          <select name="projectType">
+            <option value="EDA">EDA (데이터 탐색·분석)</option>
+            <option value="프로그래밍">프로그래밍</option>
+            <option value="사회문제탐구">사회문제탐구</option>
+          </select>
+        </div>
+
+        <div class="pilot-field">
+          <label>선생님이 지정한 성취기준 코드 <span class="hint">(선택)</span></label>
+          <textarea name="achievementStandards" placeholder="예: 12인기02-01"></textarea>
+        </div>
+
+        <div class="pilot-field">
+          <label>학습목표 <span class="hint">(선택)</span></label>
+          <textarea name="learningGoals" placeholder="선생님이 안내한 학습목표가 있다면 적어주세요"></textarea>
+        </div>
+      </div>
+
+      <button type="submit" class="pilot-submit">시작하기</button>
+    </form>
+  </section>
+
+  <section id="chat-screen" class="pilot-chat-wrap" style="display: none;">
+    <div id="webchat"></div>
+  </section>
+
+  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+  <script src="chat.js"></script>
+  <script>
+    const setupScreen = document.getElementById('setup-screen');
+    const chatScreen = document.getElementById('chat-screen');
+    const webchatEl = document.getElementById('webchat');
+    const form = document.getElementById('setup-form');
+    const classModeFields = document.getElementById('class-mode-fields');
+
+    document.getElementsByName('mode').forEach((radio) => {
+      radio.addEventListener('change', () => {
+        const isClassMode = form.mode.value === 'class';
+        classModeFields.style.display = isClassMode ? 'block' : 'none';
+      });
+    });
+
+    form.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const data = new FormData(form);
+      const mode = data.get('mode');
+      const isClassMode = mode === 'class';
+
+      const initialValue = {
+        mode,
+        schoolLevel: data.get('schoolLevel') || '',
+        grade: data.get('grade') || '',
+        classId: data.get('classId') || '',
+        studentId: data.get('studentId') || '',
+        subject: isClassMode ? data.get('subject') || '' : '',
+        projectType: isClassMode ? data.get('projectType') || '' : '',
+        achievementStandards: isClassMode ? data.get('achievementStandards') || '' : '',
+        learningGoals: isClassMode ? data.get('learningGoals') || '' : '',
+      };
+
+      setupScreen.style.display = 'none';
+      chatScreen.style.display = 'flex';
+      startPilotChat({ agent: 'student', container: webchatEl, initialValue });
+    });
+  </script>
+</body>
+</html>

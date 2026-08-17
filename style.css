@@ -1,0 +1,279 @@
+:root {
+  /* 파스텔 톤 — 과하지 않게, 채도는 낮고 배경은 아주 옅게 */
+  --pilot-bg: #faf8ff;
+  --pilot-surface: #ffffff;
+  --pilot-border: #eae5f6;
+  --pilot-text: #322f3d;
+  --pilot-text-muted: #7b7689;
+
+  --pilot-primary: #6c5dd3;
+  --pilot-primary-dark: #5a4dbf;
+  --pilot-primary-soft: #eeeafb;
+
+  --pilot-accent-student: #8fc1e0;
+  --pilot-accent-student-soft: #eaf3fa;
+  --pilot-accent-teacher: #f0b199;
+  --pilot-accent-teacher-soft: #fbf0ec;
+
+  --pilot-radius: 14px;
+  --pilot-shadow: 0 8px 24px rgba(108, 93, 211, 0.08);
+  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--pilot-bg);
+  color: var(--pilot-text);
+  min-height: 100vh;
+}
+
+.pilot-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--pilot-border);
+  background: var(--pilot-surface);
+}
+
+.pilot-logo {
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.01em;
+}
+
+.pilot-logo span {
+  color: var(--pilot-primary);
+}
+
+.pilot-badge {
+  font-size: 12px;
+  color: var(--pilot-primary-dark);
+  background: var(--pilot-primary-soft);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 3px 10px;
+}
+
+/* 랜딩 페이지 */
+.pilot-landing {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 72px 24px;
+  text-align: center;
+}
+
+.pilot-landing h1 {
+  font-size: 32px;
+  margin-bottom: 12px;
+}
+
+.pilot-landing p {
+  color: var(--pilot-text-muted);
+  margin-bottom: 40px;
+  line-height: 1.6;
+}
+
+.pilot-choice-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 560px) {
+  .pilot-choice-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.pilot-choice-card {
+  display: block;
+  background: var(--pilot-surface);
+  border: 1px solid var(--pilot-border);
+  border-top: 3px solid var(--card-accent, var(--pilot-primary));
+  border-radius: var(--pilot-radius);
+  box-shadow: var(--pilot-shadow);
+  padding: 28px 20px;
+  text-decoration: none;
+  color: var(--pilot-text);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pilot-choice-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(108, 93, 211, 0.14);
+}
+
+.pilot-choice-card--student {
+  --card-accent: var(--pilot-accent-student);
+}
+
+.pilot-choice-card--teacher {
+  --card-accent: var(--pilot-accent-teacher);
+}
+
+.pilot-choice-card .icon {
+  font-size: 30px;
+  margin-bottom: 10px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--icon-bg, var(--pilot-primary-soft));
+}
+
+.pilot-choice-card--student .icon {
+  --icon-bg: var(--pilot-accent-student-soft);
+}
+
+.pilot-choice-card--teacher .icon {
+  --icon-bg: var(--pilot-accent-teacher-soft);
+}
+
+.pilot-choice-card h2 {
+  font-size: 18px;
+  margin: 0 0 6px;
+}
+
+.pilot-choice-card p {
+  font-size: 13px;
+  color: var(--pilot-text-muted);
+  margin: 0;
+}
+
+/* 설정 화면 (학생용) */
+.pilot-setup {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 40px 20px 80px;
+}
+
+.pilot-setup h1 {
+  font-size: 22px;
+  margin-bottom: 6px;
+}
+
+.pilot-setup .lead {
+  color: var(--pilot-text-muted);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+
+.pilot-field {
+  margin-bottom: 18px;
+}
+
+.pilot-field label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.pilot-field .hint {
+  font-size: 12px;
+  color: var(--pilot-text-muted);
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.pilot-field select,
+.pilot-field input[type="text"],
+.pilot-field input[type="number"],
+.pilot-field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--pilot-border);
+  border-radius: 10px;
+  font-size: 14px;
+  background: var(--pilot-surface);
+  color: var(--pilot-text);
+  font-family: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.pilot-field select:focus,
+.pilot-field input:focus,
+.pilot-field textarea:focus {
+  outline: none;
+  border-color: var(--pilot-primary);
+  box-shadow: 0 0 0 3px var(--pilot-primary-soft);
+}
+
+.pilot-field textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.pilot-radio-group {
+  display: flex;
+  gap: 10px;
+}
+
+.pilot-radio-group label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--pilot-border);
+  border-radius: 10px;
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  background: var(--pilot-surface);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.pilot-radio-group label:has(input:checked) {
+  background: var(--pilot-primary-soft);
+  border-color: var(--pilot-primary);
+  color: var(--pilot-primary-dark);
+}
+
+.pilot-radio-group input {
+  accent-color: var(--pilot-primary);
+}
+
+.pilot-submit {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: var(--pilot-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.pilot-submit:hover {
+  background: var(--pilot-primary-dark);
+}
+
+/* 채팅 화면 */
+.pilot-chat-wrap {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 61px);
+}
+
+#webchat {
+  flex: 1;
+  min-height: 0;
+}
+
+.pilot-loading {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--pilot-text-muted);
+  font-size: 14px;
+}

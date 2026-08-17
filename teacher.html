@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Pilot Management Coach</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="pilot-header">
+    <div class="pilot-logo">P<span>ilot</span> Management Coach</div>
+  </header>
+
+  <section class="pilot-chat-wrap">
+    <div id="webchat"></div>
+  </section>
+
+  <!--
+    교사용은 별도 설정 화면 없이 바로 채팅으로 들어갑니다.
+    학교급·학년·반·교과는 웹앱이 넘기지 않고, 에이전트가 대화 중 한 번만
+    직접 확인하도록 Instruction(3번)에서 이미 정해두었기 때문입니다.
+  -->
+  <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
+  <script src="chat.js"></script>
+  <script>
+    const webchatEl = document.getElementById('webchat');
+    startPilotChat({ agent: 'teacher', container: webchatEl, initialValue: {} });
+  </script>
+</body>
+</html>
