@@ -434,7 +434,7 @@ body {
 .pilot-paste-toast {
   position: absolute;
   left: 50%;
-  bottom: 84px;
+  bottom: 148px;
   transform: translateX(-50%);
   max-width: 90%;
   background: var(--pilot-text);
@@ -454,4 +454,147 @@ body {
 
 .pilot-paste-toast.is-error {
   background: #c0503f;
+}
+
+/* 붙여넣은 스크린샷을 바로 보내지 않고 모아두는 tray — #webchat(container) 안,
+   입력창 바로 위에 겹쳐 그린다. container에 padding-bottom을 함께 줘서
+   WebChat 자체 영역과 겹치지 않도록 자리를 확보한다 (chat.js 참고). */
+.pilot-attach-tray {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  background: var(--pilot-surface);
+  border-top: 1px solid var(--pilot-border);
+  box-shadow: 0 -6px 16px rgba(50, 47, 61, 0.06);
+  padding: 10px 12px;
+}
+
+.pilot-attach-thumbs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.pilot-attach-thumb {
+  position: relative;
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--pilot-border);
+}
+
+.pilot-attach-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.pilot-attach-remove {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(50, 47, 61, 0.7);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.pilot-attach-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pilot-attach-count {
+  font-size: 12px;
+  color: var(--pilot-text-muted);
+  margin-right: auto;
+}
+
+.pilot-attach-clear,
+.pilot-attach-send {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pilot-attach-clear {
+  background: var(--pilot-bg);
+  color: var(--pilot-text-muted);
+  border: 1px solid var(--pilot-border);
+}
+
+.pilot-attach-send {
+  background: var(--pilot-primary);
+  color: #fff;
+}
+
+.pilot-attach-send:hover {
+  background: var(--pilot-primary-dark);
+}
+
+/* 진행 상황 패널의 "파일로 저장하기" 버튼 (학생용) */
+.pilot-progress-export {
+  width: 100%;
+  margin-top: 22px;
+  padding: 10px;
+  border: 1px dashed var(--pilot-primary);
+  border-radius: 10px;
+  background: var(--pilot-primary-soft);
+  color: var(--pilot-primary-dark);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pilot-progress-export:hover:not(:disabled) {
+  background: var(--pilot-primary);
+  color: #fff;
+}
+
+.pilot-progress-export:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 첨부파일 용량 제한 안내 (학생 진행 상황 패널 / 교사 채팅 상단) */
+.pilot-attach-hint {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--pilot-text-muted);
+  line-height: 1.5;
+}
+
+.pilot-chat-hint {
+  max-width: 640px;
+  margin: 0 auto 10px;
+  font-size: 12px;
+  color: var(--pilot-text-muted);
+  text-align: center;
+}
+
+.pilot-teacher-chat-column {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 16px 20px 0;
 }

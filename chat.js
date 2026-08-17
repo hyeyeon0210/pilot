@@ -120,9 +120,10 @@ function showPasteToast(container, message, variant) {
   }
 }
 
-// 채팅창에 이미지를 붙여넣으면(스크린샷 캡처 등) 자동으로 압축한 뒤
-// Direct Line에 직접 전송한다 — WebChat 기본 첨부 경로(WEB_CHAT/SEND_FILES)는
-// 최신 CDN 빌드에서 동작이 불안정하다는 보고가 있어 우회한다.
+// 채팅창에 이미지를 붙여넣으면(스크린샷 캡처 등) 자동으로 압축한다 —
+// Direct Line에 직접 전송하는 시점은 아래 attachment tray의 "전송" 클릭 시점이다
+// (WebChat 기본 첨부 경로인 WEB_CHAT/SEND_FILES는 최신 CDN 빌드에서 동작이
+// 불안정하다는 보고가 있어 우회하고, Direct Line JS의 postActivity로 직접 보낸다).
 //
 // 주의: WebChat의 입력창(SendBox)은 자체적으로 paste 이벤트를 처리해
 // (그리고 그 처리가 앞서 확인한 대로 조용히 실패한다) 이벤트 전파를 막아버린다.
@@ -144,7 +145,153 @@ function extractImageFileFromClipboard(clipboardData) {
   return files.find((f) => f.type.startsWith('image/')) || null;
 }
 
+// 붙여넣은 이미지를 바로 전송하지 않고 "담아두는" 화면(tray)을 관리한다.
+// 스크린샷을 여러 장 이어 붙여도 한 장씩 즉시 전송되지 않고, 학생이 원하는
+// 만큼 모았다가 "전송" 버튼을 눌렀을 때 한 번에(여러 장 첨부로) 보낼 수 있다.
+function createAttachmentTray(container, directLine, userId, agent) {
+  const pending = [];
+  let trayEl = null;
+
+  function setReservedSpace(active) {
+    // tray가 떠 있는 동안, WebChat이 그 자리를 침범하지 않도록 아래쪽에
+    // 여백을 확보해둔다 (tray는 container 안에 absolute로 겹쳐 그린다).
+    container.style.paddingBottom = active ? '132px' : '';
+  }
+
+  function render() {
+    if (pending.length === 0) {
+      if (trayEl) {
+        trayEl.remove();
+        trayEl = null;
+      }
+      setReservedSpace(false);
+      return;
+    }
+
+    setReservedSpace(true);
+
+    if (!trayEl) {
+      trayEl = document.createElement('div');
+      trayEl.className = 'pilot-attach-tray';
+      container.appendChild(trayEl);
+    }
+    trayEl.innerHTML = '';
+
+    const thumbs = document.createElement('div');
+    thumbs.className = 'pilot-attach-thumbs';
+    pending.forEach((item) => {
+      const thumb = document.createElement('div');
+      thumb.className = 'pilot-attach-thumb';
+
+      const img = document.createElement('img');
+      img.src = item.previewUrl;
+      img.alt = '첨부할 이미지 미리보기';
+      thumb.appendChild(img);
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'pilot-attach-remove';
+      removeBtn.setAttribute('aria-label', '이 이미지 빼기');
+      removeBtn.textContent = '×';
+      removeBtn.addEventListener('click', () => {
+        const idx = pending.findIndex((p) => p.id === item.id);
+        if (idx >= 0) pending.splice(idx, 1);
+        render();
+      });
+      thumb.appendChild(removeBtn);
+
+      thumbs.appendChild(thumb);
+    });
+    trayEl.appendChild(thumbs);
+
+    const actions = document.createElement('div');
+    actions.className = 'pilot-attach-actions';
+
+    const countLabel = document.createElement('span');
+    countLabel.className = 'pilot-attach-count';
+    countLabel.textContent = `이미지 ${pending.length}장 담김`;
+    actions.appendChild(countLabel);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'pilot-attach-clear';
+    clearBtn.textContent = '모두 빼기';
+    clearBtn.addEventListener('click', () => {
+      pending.length = 0;
+      render();
+    });
+    actions.appendChild(clearBtn);
+
+    const sendBtn = document.createElement('button');
+    sendBtn.type = 'button';
+    sendBtn.className = 'pilot-attach-send';
+    sendBtn.textContent = '전송';
+    sendBtn.addEventListener('click', sendAll);
+    actions.appendChild(sendBtn);
+
+    trayEl.appendChild(actions);
+  }
+
+  async function addImage(file) {
+    showPasteToast(container, '이미지를 준비하고 있어요…');
+    try {
+      let blob = file;
+      if (file.size > MAX_ATTACHMENT_BYTES) {
+        blob = await shrinkImageUnderLimit(file);
+      }
+      if (!blob || blob.size > MAX_ATTACHMENT_BYTES) {
+        showPasteToast(container, '이미지 용량이 너무 커서 담을 수 없어요. 더 작은 이미지로 시도해 주세요.', 'error');
+        return;
+      }
+      const dataUri = await blobToDataUri(blob);
+      pending.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        previewUrl: dataUri,
+      });
+      showPasteToast(container, '');
+      render();
+    } catch (err) {
+      showPasteToast(container, '이미지를 처리하는 중 문제가 발생했어요.', 'error');
+    }
+  }
+
+  function sendAll() {
+    if (pending.length === 0) return;
+
+    const attachments = pending.map((item, i) => ({
+      contentType: 'image/jpeg',
+      contentUrl: item.previewUrl,
+      name: `screenshot-${Date.now()}-${i + 1}.jpg`,
+    }));
+    const snapshot = pending.slice();
+    pending.length = 0;
+    render();
+    showPasteToast(container, `이미지 ${attachments.length}장을 보내고 있어요…`);
+
+    directLine
+      .postActivity({
+        type: 'message',
+        from: { id: userId, name: agent === 'teacher' ? '교사' : '학생' },
+        text: '',
+        attachments,
+      })
+      .subscribe(
+        () => showPasteToast(container, `이미지 ${attachments.length}장 전송 완료`, 'success'),
+        () => {
+          showPasteToast(container, '이미지 전송에 실패했어요. 다시 시도해 주세요.', 'error');
+          // 실패하면 다시 tray에 되돌려서 재시도할 수 있게 한다.
+          pending.push(...snapshot);
+          render();
+        }
+      );
+  }
+
+  return { addImage };
+}
+
 function setupImagePasteHandler(container, directLine, userId, agent) {
+  const tray = createAttachmentTray(container, directLine, userId, agent);
+
   const handlePaste = (event) => {
     const file = extractImageFileFromClipboard(event.clipboardData);
     if (!file) return; // 이미지가 아니면 원래 붙여넣기 동작(텍스트 등)을 막지 않는다
@@ -157,40 +304,7 @@ function setupImagePasteHandler(container, directLine, userId, agent) {
       event.stopImmediatePropagation();
     }
 
-    (async () => {
-      showPasteToast(container, '이미지를 준비하고 있어요…');
-      try {
-        let blob = file;
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-          blob = await shrinkImageUnderLimit(file);
-        }
-        if (!blob || blob.size > MAX_ATTACHMENT_BYTES) {
-          showPasteToast(container, '이미지 용량이 너무 커서 보낼 수 없어요. 더 작은 이미지로 시도해 주세요.', 'error');
-          return;
-        }
-
-        const dataUri = await blobToDataUri(blob);
-        const fileName = `screenshot-${Date.now()}.jpg`;
-
-        directLine.postActivity({
-          type: 'message',
-          from: { id: userId, name: agent === 'teacher' ? '교사' : '학생' },
-          text: '',
-          attachments: [
-            {
-              contentType: 'image/jpeg',
-              contentUrl: dataUri,
-              name: fileName,
-            },
-          ],
-        }).subscribe(
-          () => showPasteToast(container, `${fileName} 전송 완료`, 'success'),
-          () => showPasteToast(container, '이미지 전송에 실패했어요. 다시 시도해 주세요.', 'error')
-        );
-      } catch (err) {
-        showPasteToast(container, '이미지를 처리하는 중 문제가 발생했어요.', 'error');
-      }
-    })();
+    tray.addImage(file);
   };
 
   // capture: true — WebChat의 입력창이 이벤트를 받기 전에, 상위 container
@@ -308,4 +422,17 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
   // 채팅창(파일 첨부 영역 포함)에 이미지를 붙여넣으면 자동 압축 후 전송되도록 연결한다.
   container.style.position = 'relative';
   setupImagePasteHandler(container, directLine, userId, agent);
+
+  return {
+    // 웹앱 UI(예: 진행 상황 패널의 "파일로 저장하기" 버튼)에서 호출한다.
+    // Instruction 9번 규칙대로 "저장해줘"에 해당하는 문장을 학생이 직접 보낸
+    // 것처럼 실제 메시지로 보내, 에이전트가 진행 상황 요약(.md) 파일을 만들어
+    // 채팅으로 돌려주게 한다 — 화면에서 숨기지 않고 평소 메시지처럼 보인다.
+    requestProgressFile() {
+      store.dispatch({
+        type: 'WEB_CHAT/SEND_MESSAGE',
+        payload: { text: '지금까지 진행 상황을 파일로 저장해줘.' },
+      });
+    },
+  };
 }
