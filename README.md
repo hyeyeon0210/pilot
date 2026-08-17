@@ -163,29 +163,31 @@ git push -u origin main
 5. 이후 GitHub `main` 브랜치에 push할 때마다 Vercel이 자동 재배포합니다. 환경변수를
    나중에 추가·수정했다면 반드시 **Redeploy**를 한 번 눌러줘야 반영됩니다.
 
-### 4. Copilot Studio 쪽에서 초기 변수 받기
+### 4. 초기 변수는 어떻게 에이전트에 전달되나
 
 `student.html`은 시작 화면에서 입력받은 `mode`·`schoolLevel`·`grade`·`classId`·`studentId`·
-`subject`·`projectType`·`achievementStandards`·`learningGoals` 값을, 대화가 연결되자마자
-`startConversation`이라는 이벤트 액티비티에 담아 에이전트로 보냅니다(`chat.js` 참고).
+`subject`·`projectType`·`achievementStandards`·`learningGoals` 값을 대화가 연결되자마자
+**보이지 않는 첫 번째 채팅 메시지**로 보냅니다(`[PILOT_WEBAPP_CONTEXT] {...JSON...}`
+형태, `chat.js` 참고). `activityMiddleware`로 이 메시지만 화면 렌더링에서 걸러내기
+때문에 학생 눈에는 보이지 않지만, 에이전트에게는 정상적인 채팅 메시지로 전달됩니다.
 
-Copilot Studio 쪽에서 이 값을 받으려면(Learning Coach Instruction 3번 표의 변수명과
-정확히 일치해야 합니다):
+처음에는 Copilot Studio의 "Global 변수 + 이벤트 액티비티" 방식(Topics 화면에서
+Question 노드로 변수를 받는 고전적인 방식)으로 시도했는데, 지금 사용 중인
+단순화된 에이전트 빌더(Topics/Global 변수 편집 화면이 없는, Instruction 한 칸으로
+동작을 정의하는 빌더)에는 그 UI 자체가 없어서 값이 전달되지 않는 문제가 있었습니다.
+그래서 **이벤트가 아니라 실제 메시지로 보내고, 에이전트의 Instruction이 그 메시지를
+직접 해석**하도록 방식을 바꿨습니다. Copilot Studio 쪽에서 별도로 변수를 만들거나
+설정할 필요가 없고, **Pilot Learning Coach Instruction 3번**에 이 메시지를 읽는
+규칙이 이미 반영되어 있습니다 — Instruction을 이 버전으로 맞춰만 두면 됩니다.
 
-1. Pilot Learning Coach → **Topics → System topics → Conversation Start**
-2. 각 변수마다 **Question 노드**를 추가하고 질문 문구는 비워둔 채:
-   - Identify: **User's entire response**
-   - Variable 이름을 `mode`, `schoolLevel`, `grade` 등 **웹앱이 보내는 이름과 동일하게** 지정
-   - Variable 속성에서 **Scope: Global**, **"External sources can set values"** 켜기
-3. 저장 후 게시(Publish)
+**첫 인사말이 두 번 뜨거나(오래된 이름이 섞여 나오는 등) mode가 계속 탐구모드로만
+나온다면**, 아래를 확인해보세요.
 
-Copilot Studio 화면 구성은 버전마다 조금씩 달라질 수 있어, 정확한 최신 절차는 아래
-공식 문서로 한 번 더 확인해보시는 걸 권장드립니다.
-
-- [Pass context variables from a webpage to an agent](https://learn.microsoft.com/en-us/microsoft-copilot-studio/guidance/pass-context-variables-from-webpage-to-copilot)
-- [Publish an agent to mobile or custom apps](https://learn.microsoft.com/en-us/microsoft-copilot-studio/publication-connect-bot-to-custom-application)
-- [Automatically start an agent conversation](https://learn.microsoft.com/en-us/microsoft-copilot-studio/configure-bot-greeting)
-- [Configure web and Direct Line channel security](https://learn.microsoft.com/en-us/microsoft-copilot-studio/configure-web-security) — Direct Line을 특정 도메인(배포된 Vercel 주소)에서만 쓰도록 추가로 제한하고 싶을 때 참고
+- Instruction 3번이 최신 버전(`[PILOT_WEBAPP_CONTEXT]` 메시지를 읽는 규칙 포함)으로
+  저장·게시되어 있는지
+- Conversation Start와는 별개로 **기본 제공되는 "Greeting" 프롬프트**가 따로 남아
+  있어 그쪽도 같이 응답하고 있지 않은지 — 있다면 하나로 정리해주세요.
+- 브라우저 캐시 — 강력 새로고침(`Ctrl/Cmd+Shift+R`) 또는 시크릿 창으로 재시도
 
 ### 5. 로컬에서 먼저 테스트하고 싶다면
 

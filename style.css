@@ -429,3 +429,29 @@ body {
   color: var(--pilot-text-muted);
   font-size: 14px;
 }
+
+/* 이미지 붙여넣기 전송 상태 토스트 (#webchat 위에 겹쳐 표시) */
+.pilot-paste-toast {
+  position: absolute;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  max-width: 90%;
+  background: var(--pilot-text);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 8px 14px;
+  border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(50, 47, 61, 0.25);
+  z-index: 20;
+  text-align: center;
+}
+
+.pilot-paste-toast.is-success {
+  background: var(--pilot-primary);
+}
+
+.pilot-paste-toast.is-error {
+  background: #c0503f;
+}
