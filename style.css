@@ -95,7 +95,7 @@ body {
 .pilot-hero-title {
   margin: 0 0 4px;
   font-family: "Caveat", "Pretendard", cursive, sans-serif;
-  font-size: clamp(144px, 32vw, 297px);
+  font-size: clamp(108px, 24vw, 223px);
   font-weight: 700;
   color: var(--pilot-primary);
   line-height: 1;
