@@ -493,7 +493,7 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
     accent: '#6C5DD3',
     backgroundColor: '#FFFFFF',
     primaryFont:
-      '-apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
+      '"Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif',
 
     bubbleBackground: '#F3F1FC',
     bubbleTextColor: '#322F3D',

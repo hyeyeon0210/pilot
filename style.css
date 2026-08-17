@@ -17,7 +17,10 @@
 
   --pilot-radius: 14px;
   --pilot-shadow: 0 8px 24px rgba(108, 93, 211, 0.08);
-  font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  /* Pretendard를 CDN(<link>)으로 직접 불러와서, 기기 OS와 상관없이 항상
+     같은(살짝 둥글둥글하고 깔끔한) 글꼴로 보이게 한다. 로드되기 전/실패 시엔
+     시스템 산세리프로 자연스럽게 대체된다. */
+  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
 }
 
 * {
@@ -29,6 +32,10 @@ body {
   background: var(--pilot-bg);
   color: var(--pilot-text);
   min-height: 100vh;
+  /* 한글 단어(어절) 중간이 애매하게 잘려 줄바꿈되지 않도록 — 좁은 사이드 패널에서
+     특히 두드러졌던 문제. 정말 긴 영단어/숫자는 overflow-wrap으로 넘침만 방지. */
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .pilot-header {
