@@ -85,6 +85,70 @@ body {
   line-height: 1.6;
 }
 
+/* 상단 헤더 없이, 화면 전체를 하나의 히어로로 — "Pilot" 로고가 세로/가로
+   모두 중앙에 크게 온다. */
+.pilot-landing--hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* "Pilot" 글자가 한 글자씩, 손으로 쓰는 듯 순서대로 나타나는 애니메이션. */
+.pilot-hero-title {
+  margin: 0 0 4px;
+  font-family: "Caveat", "Pretendard", cursive, sans-serif;
+  font-size: clamp(64px, 14vw, 132px);
+  font-weight: 700;
+  color: var(--pilot-primary);
+  line-height: 1;
+}
+
+.pilot-hero-title span {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(16px) rotate(-8deg);
+  animation: pilot-handwrite 0.5s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.18s + 0.15s);
+}
+
+@keyframes pilot-handwrite {
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(0deg);
+  }
+}
+
+/* 글자가 다 쓰인 직후, 펜 끝처럼 깜빡이다가 사라지는 커서. */
+.pilot-hero-caret {
+  display: inline-block;
+  width: 2px;
+  margin-left: 4px;
+  color: var(--pilot-primary);
+  opacity: 0;
+  animation:
+    pilot-caret-blink 0.8s steps(1, end) 4,
+    pilot-caret-hide 0.1s linear forwards;
+  animation-delay: 1.05s, 4.25s;
+}
+
+@keyframes pilot-caret-blink {
+  0%, 100% {
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes pilot-caret-hide {
+  to {
+    opacity: 0;
+  }
+}
+
 .pilot-choice-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -115,6 +179,14 @@ body {
 .pilot-teacher-link:hover {
   opacity: 1;
   text-decoration: underline;
+}
+
+/* 학생 화면에서 눈에 잘 안 띄도록, 화면 우측 하단 구석에 작게 숨겨둔다. */
+.pilot-teacher-link--corner {
+  position: fixed;
+  right: 20px;
+  bottom: 16px;
+  margin-top: 0;
 }
 
 .pilot-choice-card {
