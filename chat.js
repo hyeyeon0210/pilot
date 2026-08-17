@@ -5,11 +5,33 @@
 // 1) /api/token?agent=... 을 호출해 (Vercel 서버리스 함수가 대신) 짧은 수명의
 //    Direct Line 토큰을 발급받는다 — 진짜 Secret은 브라우저에 절대 내려오지 않는다.
 // 2) Bot Framework Web Chat을 그 토큰으로 렌더링한다.
-// 3) 연결이 완료되면(DIRECT_LINE/CONNECT_FULFILLED) startConversation 이벤트를
-//    initialValue와 함께 전송해, Copilot Studio의 대화 시작 로직이 mode·schoolLevel 등
-//    초기 변수를 받아 쓸 수 있게 한다.
-//    (참고: Copilot Studio 쪽에서 Global 변수를 만들고 "외부에서 값 설정 가능"을
-//     켜둬야 이 값들이 실제로 채워집니다 — README 참고)
+// 3) 연결이 완료되면(DIRECT_LINE/CONNECT_FULFILLED) initialValue를 "첫 번째 사용자
+//    메시지"로 보낸다. Copilot Studio의 지금 에이전트 빌더(Topics/Global 변수 화면이
+//    없는 단순화된 빌더)는 별도 변수 바인딩 UI가 없어서, 이벤트 액티비티나
+//    pvaSetContext 같은 예약 이벤트로는 값이 전달되지 않았다 — 그래서 대신 실제
+//    메시지로 보내고, 그 안의 값은 Instruction이 직접 읽어서 해석하도록 했다
+//    (Learning Coach Instruction 3번 참고).
+// 4) 이 메시지는 학생에게는 보이면 안 되므로, activityMiddleware로 화면에서만
+//    숨긴다 — 봇에게는 정상적으로 전달되고, 학생 눈에만 안 보인다.
+
+const PILOT_CONTEXT_MARKER = '[PILOT_WEBAPP_CONTEXT]';
+
+// 우리가 보낸 컨텍스트 메시지를 화면(transcript)에서만 제거한다.
+function hideContextMessageMiddleware() {
+  return (next) => (card) => {
+    const { activity } = card;
+    if (
+      activity &&
+      activity.from &&
+      activity.from.role === 'user' &&
+      typeof activity.text === 'string' &&
+      activity.text.startsWith(PILOT_CONTEXT_MARKER)
+    ) {
+      return () => false;
+    }
+    return next(card);
+  };
+}
 
 async function startPilotChat({ agent, container, initialValue = {}, locale = 'ko-KR' }) {
   container.innerHTML = '<div class="pilot-loading">대화를 준비하고 있어요…</div>';
@@ -27,13 +49,14 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
     return;
   }
 
+  const hasInitialValue = Object.values(initialValue).some((v) => v !== '' && v != null);
+
   const store = window.WebChat.createStore({}, ({ dispatch }) => (next) => (action) => {
-    if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
+    if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED' && hasInitialValue) {
       dispatch({
-        type: 'WEB_CHAT/SEND_EVENT',
+        type: 'WEB_CHAT/SEND_MESSAGE',
         payload: {
-          name: 'pvaSetContext',
-          value: initialValue,
+          text: `${PILOT_CONTEXT_MARKER} ${JSON.stringify(initialValue)}`,
         },
       });
     }
@@ -85,6 +108,7 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
       userID: userId,
       locale,
       styleOptions,
+      activityMiddleware: hideContextMessageMiddleware,
     },
     container
   );
