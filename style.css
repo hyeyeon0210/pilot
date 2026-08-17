@@ -512,6 +512,47 @@ body {
   display: block;
 }
 
+/* 이미지가 아닌 일반 파일(PDF·DOCX 등) 미리보기 — 썸네일 대신 아이콘+파일명 칩 */
+.pilot-attach-file-chip {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 168px;
+  height: 56px;
+  padding: 6px 24px 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--pilot-border);
+  background: var(--pilot-bg);
+}
+
+.pilot-attach-file-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.pilot-attach-file-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.pilot-attach-file-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--pilot-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pilot-attach-file-size {
+  font-size: 10px;
+  color: var(--pilot-text-muted);
+}
+
 .pilot-attach-remove {
   position: absolute;
   top: 2px;

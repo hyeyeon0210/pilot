@@ -18,16 +18,21 @@
 //    텍스트에서는 그 태그를 잘라낸다 — 진행 상황 사이드바가 이 콜백으로 갱신된다.
 // 6) Direct Line은 첨부파일 용량이 약 4MB를 넘으면 업로드가 그냥 실패한다
 //    (Bot Framework 쪽 플랫폼 자체 한도 — Copilot Studio 설정으로 바꿀 수 없음).
-//    그래서 클립보드에서 붙여넣은 이미지(스크린샷 등)는 <canvas>로 미리
-//    압축·축소한 뒤, WebChat 내부의 파일첨부 경로 대신 Direct Line JS의
-//    안정적인 postActivity API로 직접 전송한다. PDF/DOCX 등 이미지가 아닌
-//    파일(📎 버튼으로 첨부)은 클라이언트에서 압축할 방법이 없어 이 우회가
-//    적용되지 않으며, 여전히 4MB 아래여야 전송된다.
+//    그래서 클립보드 붙여넣기(스크린샷)나 📎 버튼으로 고른 파일 모두
+//    WebChat 내부의 (불안정한) 파일첨부 경로를 거치지 않고, 먼저 화면 아래
+//    tray에 "담아 미리보기"만 한 뒤 — 이미지는 <canvas>로 압축까지 마친 뒤 —
+//    학생/교사가 "전송"을 눌렀을 때 Direct Line JS의 안정적인 postActivity
+//    API로 직접 보낸다. PDF/DOCX 등 이미지가 아닌 파일은 클라이언트에서
+//    압축할 방법이 없어, base64 인코딩 오버헤드까지 감안한 더 낮은 용량
+//    한도(MAX_RAW_FILE_BYTES)를 넘으면 애초에 담지 못하게 막는다.
 
 const PILOT_CONTEXT_MARKER = '[PILOT_WEBAPP_CONTEXT]';
 const PILOT_STAGE_PATTERN = /\s*\[PILOT_STAGE:(\d)\]\s*$/;
-// Direct Line의 실제 한도(약 4MB)보다 여유를 둔 안전선.
+// Direct Line의 실제 한도(약 4MB)보다 여유를 둔 안전선 — 압축 가능한 이미지의 목표 상한.
 const MAX_ATTACHMENT_BYTES = 3.5 * 1024 * 1024;
+// 압축이 불가능한 일반 파일(PDF·DOCX 등)의 안전 상한. data URI(base64)로
+// 감싸면 원본보다 약 37% 커지므로, 원본 기준으로는 더 보수적으로 잡는다.
+const MAX_RAW_FILE_BYTES = 2.5 * 1024 * 1024;
 
 // 우리가 보낸 컨텍스트 메시지를 화면(transcript)에서만 제거한다.
 function hideContextMessageMiddleware() {
@@ -96,6 +101,23 @@ async function shrinkImageUnderLimit(file) {
   }
   // 그래도 한도 아래로 못 줄이면, 지금까지 시도한 것 중 가장 작은 결과라도 반환한다.
   return smallestBlob;
+}
+
+function formatBytes(bytes) {
+  if (bytes < 1024) return `${bytes}B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
+
+// 파일 확장자/타입에 따라 미리보기용 아이콘을 고른다 (이미지가 아닌 파일 전용).
+function fileIconFor(name, contentType) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if ((contentType || '').includes('pdf') || ext === 'pdf') return '📄';
+  if (['doc', 'docx', 'hwp', 'hwpx'].includes(ext)) return '📝';
+  if (['xls', 'xlsx', 'csv'].includes(ext)) return '📊';
+  if (['ppt', 'pptx'].includes(ext)) return '📑';
+  if (['zip', 'rar', '7z'].includes(ext)) return '🗜️';
+  return '📎';
 }
 
 // 붙여넣기(paste) 중이라는 상태를 채팅창 위에 잠깐 띄워준다 — 지금은 아무 표시가
@@ -181,17 +203,42 @@ function createAttachmentTray(container, directLine, userId, agent) {
     thumbs.className = 'pilot-attach-thumbs';
     pending.forEach((item) => {
       const thumb = document.createElement('div');
-      thumb.className = 'pilot-attach-thumb';
 
-      const img = document.createElement('img');
-      img.src = item.previewUrl;
-      img.alt = '첨부할 이미지 미리보기';
-      thumb.appendChild(img);
+      if (item.kind === 'image') {
+        thumb.className = 'pilot-attach-thumb';
+        const img = document.createElement('img');
+        img.src = item.previewUrl;
+        img.alt = '첨부할 이미지 미리보기';
+        thumb.appendChild(img);
+      } else {
+        thumb.className = 'pilot-attach-file-chip';
+
+        const icon = document.createElement('span');
+        icon.className = 'pilot-attach-file-icon';
+        icon.textContent = fileIconFor(item.name, item.contentType);
+        thumb.appendChild(icon);
+
+        const meta = document.createElement('span');
+        meta.className = 'pilot-attach-file-meta';
+
+        const nameEl = document.createElement('span');
+        nameEl.className = 'pilot-attach-file-name';
+        nameEl.textContent = item.name;
+        nameEl.title = item.name;
+        meta.appendChild(nameEl);
+
+        const sizeEl = document.createElement('span');
+        sizeEl.className = 'pilot-attach-file-size';
+        sizeEl.textContent = formatBytes(item.size);
+        meta.appendChild(sizeEl);
+
+        thumb.appendChild(meta);
+      }
 
       const removeBtn = document.createElement('button');
       removeBtn.type = 'button';
       removeBtn.className = 'pilot-attach-remove';
-      removeBtn.setAttribute('aria-label', '이 이미지 빼기');
+      removeBtn.setAttribute('aria-label', '이 첨부 빼기');
       removeBtn.textContent = '×';
       removeBtn.addEventListener('click', () => {
         const idx = pending.findIndex((p) => p.id === item.id);
@@ -209,7 +256,7 @@ function createAttachmentTray(container, directLine, userId, agent) {
 
     const countLabel = document.createElement('span');
     countLabel.className = 'pilot-attach-count';
-    countLabel.textContent = `이미지 ${pending.length}장 담김`;
+    countLabel.textContent = `첨부 ${pending.length}개 담김`;
     actions.appendChild(countLabel);
 
     const clearBtn = document.createElement('button');
@@ -246,7 +293,11 @@ function createAttachmentTray(container, directLine, userId, agent) {
       const dataUri = await blobToDataUri(blob);
       pending.push({
         id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'image',
         previewUrl: dataUri,
+        name: `screenshot-${Date.now()}.jpg`,
+        size: blob.size,
+        contentType: 'image/jpeg',
       });
       showPasteToast(container, '');
       render();
@@ -255,18 +306,56 @@ function createAttachmentTray(container, directLine, userId, agent) {
     }
   }
 
+  // 이미지가 아닌 일반 파일(PDF·DOCX 등)은 클라이언트에서 압축할 방법이 없으므로,
+  // 더 낮은 한도(MAX_RAW_FILE_BYTES)를 넘으면 애초에 담지 않고 바로 안내한다.
+  async function addGenericFile(file) {
+    showPasteToast(container, '파일을 준비하고 있어요…');
+    try {
+      if (file.size > MAX_RAW_FILE_BYTES) {
+        showPasteToast(
+          container,
+          `"${file.name}" 파일이 너무 커서(${formatBytes(file.size)}) 담을 수 없어요. 문서·PDF 파일은 압축할 수 없어서 ${formatBytes(MAX_RAW_FILE_BYTES)} 이하만 첨부할 수 있어요.`,
+          'error'
+        );
+        return;
+      }
+      const dataUri = await blobToDataUri(file);
+      pending.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        kind: 'file',
+        previewUrl: dataUri,
+        name: file.name,
+        size: file.size,
+        contentType: file.type || 'application/octet-stream',
+      });
+      showPasteToast(container, '');
+      render();
+    } catch (err) {
+      showPasteToast(container, '파일을 처리하는 중 문제가 발생했어요.', 'error');
+    }
+  }
+
+  // 붙여넣기·📎 버튼 어느 경로로 들어오든 이 함수 하나로 받는다 — 이미지면
+  // 압축 경로(addImage)로, 그 외 파일이면 addGenericFile로 나눠 보낸다.
+  function addFile(file) {
+    if (file.type && file.type.startsWith('image/')) {
+      return addImage(file);
+    }
+    return addGenericFile(file);
+  }
+
   function sendAll() {
     if (pending.length === 0) return;
 
-    const attachments = pending.map((item, i) => ({
-      contentType: 'image/jpeg',
+    const attachments = pending.map((item) => ({
+      contentType: item.contentType,
       contentUrl: item.previewUrl,
-      name: `screenshot-${Date.now()}-${i + 1}.jpg`,
+      name: item.name,
     }));
     const snapshot = pending.slice();
     pending.length = 0;
     render();
-    showPasteToast(container, `이미지 ${attachments.length}장을 보내고 있어요…`);
+    showPasteToast(container, `첨부 ${attachments.length}개를 보내고 있어요…`);
 
     directLine
       .postActivity({
@@ -276,9 +365,9 @@ function createAttachmentTray(container, directLine, userId, agent) {
         attachments,
       })
       .subscribe(
-        () => showPasteToast(container, `이미지 ${attachments.length}장 전송 완료`, 'success'),
+        () => showPasteToast(container, `첨부 ${attachments.length}개 전송 완료`, 'success'),
         () => {
-          showPasteToast(container, '이미지 전송에 실패했어요. 다시 시도해 주세요.', 'error');
+          showPasteToast(container, '전송에 실패했어요. 다시 시도해 주세요.', 'error');
           // 실패하면 다시 tray에 되돌려서 재시도할 수 있게 한다.
           pending.push(...snapshot);
           render();
@@ -286,10 +375,13 @@ function createAttachmentTray(container, directLine, userId, agent) {
       );
   }
 
-  return { addImage };
+  return { addFile };
 }
 
-function setupImagePasteHandler(container, directLine, userId, agent) {
+// 붙여넣기(스크린샷)와 📎 버튼(파일 선택) 두 경로 모두, WebChat 기본 처리로
+// 넘어가기 전에 가로채서 같은 tray로 모은다 — student.html/teacher.html
+// 둘 다 startPilotChat을 통해 이 함수를 쓰므로 두 페이지 모두 동일하게 적용된다.
+function setupAttachmentInterception(container, directLine, userId, agent) {
   const tray = createAttachmentTray(container, directLine, userId, agent);
 
   const handlePaste = (event) => {
@@ -304,15 +396,37 @@ function setupImagePasteHandler(container, directLine, userId, agent) {
       event.stopImmediatePropagation();
     }
 
-    tray.addImage(file);
+    tray.addFile(file);
   };
 
-  // capture: true — WebChat의 입력창이 이벤트를 받기 전에, 상위 container
-  // 단계에서 먼저 가로챈다. (bubble 단계에 달면 WebChat이 이미 전파를 막아버려
-  // 우리 핸들러가 호출조차 되지 않았다.)
+  // 📎 버튼을 누르면 WebChat이 숨겨진 <input type="file">을 열고, 파일을
+  // 고르면 그 input에서 change 이벤트가 발생한다. WebChat 자신도 이 이벤트를
+  // 들어서 (불안정한) 자체 업로드를 시도하므로, paste와 마찬가지로 capture
+  // 단계에서 먼저 가로채 우리 tray로 돌린다.
+  const handleFileInputChange = (event) => {
+    const target = event.target;
+    if (!target || target.tagName !== 'INPUT' || target.type !== 'file') return;
+    const files = Array.from(target.files || []);
+    if (files.length === 0) return;
+
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
+
+    files.forEach((file) => tray.addFile(file));
+    // 같은 파일을 다시 골라도 change가 다시 발생하도록 값을 비워둔다.
+    target.value = '';
+  };
+
+  // capture: true — WebChat의 입력창/파일input이 이벤트를 받기 전에, 상위
+  // container 단계에서 먼저 가로챈다. (bubble 단계에 달면 WebChat이 이미
+  // 전파를 막아버려 우리 핸들러가 호출조차 되지 않았다.)
   container.addEventListener('paste', handlePaste, true);
-  // 혹시 포커스가 WebChat 트리 바깥(예: 문서 전체)에 있을 때도 동작하도록 보강.
+  container.addEventListener('change', handleFileInputChange, true);
+  // 혹시 포커스/파일input이 container 트리 바깥에 있을 때도 동작하도록 보강.
   document.addEventListener('paste', handlePaste, true);
+  document.addEventListener('change', handleFileInputChange, true);
 }
 
 async function startPilotChat({ agent, container, initialValue = {}, locale = 'ko-KR', onStageChange }) {
@@ -419,9 +533,10 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
     container
   );
 
-  // 채팅창(파일 첨부 영역 포함)에 이미지를 붙여넣으면 자동 압축 후 전송되도록 연결한다.
+  // 채팅창에 스크린샷을 붙여넣거나 📎 버튼으로 파일을 고르면, 바로 전송하지 않고
+  // 미리보기 tray에 담았다가 학생/교사가 확인 후 보낼 수 있도록 연결한다.
   container.style.position = 'relative';
-  setupImagePasteHandler(container, directLine, userId, agent);
+  setupAttachmentInterception(container, directLine, userId, agent);
 
   return {
     // 웹앱 UI(예: 진행 상황 패널의 "파일로 저장하기" 버튼)에서 호출한다.
