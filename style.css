@@ -385,6 +385,21 @@ body {
   line-height: 1.5;
 }
 
+/* 오른쪽 사이드 패널 (진행 상황 저장 버튼 · 첨부 안내) — 왼쪽 진행 상황 패널과
+   같은 스타일이되, 채팅 반대편(오른쪽)에 붙는다. */
+.pilot-side-panel {
+  width: 280px;
+  flex-shrink: 0;
+  padding: 24px 20px;
+  border-left: 1px solid var(--pilot-border);
+  background: var(--pilot-surface);
+  overflow-y: auto;
+}
+
+.pilot-side-panel-title--spaced {
+  margin-top: 28px;
+}
+
 /* 채팅을 화면 전체 폭이 아니라 가운데 카드 형태로 좁혀 보여준다 */
 .pilot-chat-column {
   flex: 1;
@@ -411,10 +426,12 @@ body {
     flex-direction: column;
   }
 
-  .pilot-progress-panel {
+  .pilot-progress-panel,
+  .pilot-side-panel {
     width: 100%;
     max-height: 160px;
     border-right: none;
+    border-left: none;
     border-bottom: 1px solid var(--pilot-border);
   }
 

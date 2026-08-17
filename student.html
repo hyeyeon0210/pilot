@@ -94,7 +94,14 @@
         <li data-stage="5"><span class="step-dot">5</span><span class="step-label">제안서·산출물 정리</span></li>
       </ol>
       <p class="pilot-progress-hint">AI와 대화하는 동안 자동으로 업데이트돼요.</p>
-
+    </aside>
+    <div class="pilot-chat-column">
+      <div class="pilot-chat-frame">
+        <div id="webchat"></div>
+      </div>
+    </div>
+    <aside class="pilot-side-panel">
+      <h2 class="pilot-progress-title">진행 상황 저장</h2>
       <button type="button" id="save-progress-btn" class="pilot-progress-export" disabled>
         📄 지금까지 진행 상황 파일로 저장하기
       </button>
@@ -102,15 +109,11 @@
         탐구 중 언제든 눌러보세요. 지금까지 이야기한 내용을 .md 파일로 정리해줘요 — 다음에 이어서 하거나 선생님께 제출할 때 그대로 쓸 수 있어요.
       </p>
 
+      <h2 class="pilot-progress-title pilot-side-panel-title--spaced">파일 첨부 안내</h2>
       <p class="pilot-attach-hint">
         📎 붙여넣은 이미지(스크린샷 등)는 자동으로 압축해서 보내요. 파일 첨부 버튼으로 올리는 PDF·문서 파일은 압축이 안 되니 4MB 이하로만 올려주세요.
       </p>
     </aside>
-    <div class="pilot-chat-column">
-      <div class="pilot-chat-frame">
-        <div id="webchat"></div>
-      </div>
-    </div>
   </section>
 
   <script src="https://cdn.botframework.com/botframework-webchat/latest/webchat.js"></script>
