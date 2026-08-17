@@ -30,14 +30,10 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
   const store = window.WebChat.createStore({}, ({ dispatch }) => (next) => (action) => {
     if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
       dispatch({
-        type: 'DIRECT_LINE/POST_ACTIVITY',
-        meta: { method: 'keyboard' },
+        type: 'WEB_CHAT/SEND_EVENT',
         payload: {
-          activity: {
-            type: 'event',
-            name: 'startConversation',
-            value: initialValue,
-          },
+          name: 'pvaSetContext',
+          value: initialValue,
         },
       });
     }
