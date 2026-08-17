@@ -123,15 +123,39 @@ function showPasteToast(container, message, variant) {
 // 채팅창에 이미지를 붙여넣으면(스크린샷 캡처 등) 자동으로 압축한 뒤
 // Direct Line에 직접 전송한다 — WebChat 기본 첨부 경로(WEB_CHAT/SEND_FILES)는
 // 최신 CDN 빌드에서 동작이 불안정하다는 보고가 있어 우회한다.
-function setupImagePasteHandler(container, directLine, userId, agent) {
-  container.addEventListener('paste', (event) => {
-    const items = Array.from(event.clipboardData && event.clipboardData.items || []);
-    const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
-    if (!imageItem) return; // 이미지가 아니면 원래 붙여넣기 동작(텍스트 등)을 막지 않는다
+//
+// 주의: WebChat의 입력창(SendBox)은 자체적으로 paste 이벤트를 처리해
+// (그리고 그 처리가 앞서 확인한 대로 조용히 실패한다) 이벤트 전파를 막아버린다.
+// 그래서 일반적인 방식(bubble 단계에서 상위 container에 리스너를 다는 것)으로는
+// 우리 핸들러가 아예 호출되지 않는다 — capture 단계에서 먼저 가로채야
+// WebChat이 이벤트를 받기 전에 우리가 먼저 처리하고 전파를 끊을 수 있다.
+function extractImageFileFromClipboard(clipboardData) {
+  if (!clipboardData) return null;
 
+  const items = Array.from(clipboardData.items || []);
+  const imageItem = items.find((item) => item.kind === 'file' && item.type.startsWith('image/'));
+  if (imageItem) {
     const file = imageItem.getAsFile();
-    if (!file) return;
+    if (file) return file;
+  }
+
+  // 일부 브라우저/상황에서는 items가 아니라 files에만 들어있는 경우가 있다.
+  const files = Array.from(clipboardData.files || []);
+  return files.find((f) => f.type.startsWith('image/')) || null;
+}
+
+function setupImagePasteHandler(container, directLine, userId, agent) {
+  const handlePaste = (event) => {
+    const file = extractImageFileFromClipboard(event.clipboardData);
+    if (!file) return; // 이미지가 아니면 원래 붙여넣기 동작(텍스트 등)을 막지 않는다
+
+    // WebChat 자체의 (불안정한) 첨부 처리가 이 이벤트를 먼저 가져가지 못하도록
+    // 여기서 완전히 막고 우리가 대신 처리한다.
     event.preventDefault();
+    event.stopPropagation();
+    if (typeof event.stopImmediatePropagation === 'function') {
+      event.stopImmediatePropagation();
+    }
 
     (async () => {
       showPasteToast(container, '이미지를 준비하고 있어요…');
@@ -167,7 +191,14 @@ function setupImagePasteHandler(container, directLine, userId, agent) {
         showPasteToast(container, '이미지를 처리하는 중 문제가 발생했어요.', 'error');
       }
     })();
-  });
+  };
+
+  // capture: true — WebChat의 입력창이 이벤트를 받기 전에, 상위 container
+  // 단계에서 먼저 가로챈다. (bubble 단계에 달면 WebChat이 이미 전파를 막아버려
+  // 우리 핸들러가 호출조차 되지 않았다.)
+  container.addEventListener('paste', handlePaste, true);
+  // 혹시 포커스가 WebChat 트리 바깥(예: 문서 전체)에 있을 때도 동작하도록 보강.
+  document.addEventListener('paste', handlePaste, true);
 }
 
 async function startPilotChat({ agent, container, initialValue = {}, locale = 'ko-KR', onStageChange }) {
