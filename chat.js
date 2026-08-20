@@ -445,10 +445,14 @@ async function startPilotChat({ agent, container, initialValue = {}, locale = 'k
     return;
   }
 
-  const hasInitialValue = Object.values(initialValue).some((v) => v !== '' && v != null);
-
   const store = window.WebChat.createStore({}, ({ dispatch }) => (next) => (action) => {
-    if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED' && hasInitialValue) {
+    // 항상(초기값이 비어 있어도) 연결 직후 숨김 컨텍스트 메시지를 보낸다 — 교사용처럼
+    // 별도 설정 화면이 없어 initialValue가 {}인 경우에도 이 메시지가 "사용자의 첫
+    // 메시지" 역할을 해서 에이전트가 Instruction의 시작 인사/맥락 확인 로직을 바로
+    // 시작한다. 예전에는 initialValue가 비어 있으면 이 메시지 자체를 안 보냈는데,
+    // 그러면 교사가 먼저 뭔가 보내기 전까지 에이전트가 전혀 응답하지 않았다
+    // (Direct Line/Copilot Studio는 사용자 메시지 없이 먼저 말을 걸지 않는다).
+    if (action.type === 'DIRECT_LINE/CONNECT_FULFILLED') {
       dispatch({
         type: 'WEB_CHAT/SEND_MESSAGE',
         payload: {
